@@ -38,7 +38,7 @@ public class MainVerticleTest {
         vertx.close(context.asyncAssertSuccess());
     }
 
-    @Test(timeout = 2000)
+    @Test(timeout = 3000)
     public void shouldConnectToWebSocketServer(TestContext context) {
         final Async async = context.async();
         HttpClient client = createHttpClient();
