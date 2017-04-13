@@ -1,0 +1,32 @@
+// Allows centralized definition of the version of artifacts to
+// use.  In that respect it serves a role similar to <dependencyManagement> in Maven
+ext {
+    junitVersion = '4.12'
+    slf4jVersion = '1.7.24'
+    assertjVersion = '3.6.2'
+    logbackVersion = '0.9.26'
+    mockitoVersion = '1.10.19'
+    vertxVersion = '3.4.1'
+
+    libraries = [
+            // compile
+            slf4j: "org.slf4j:slf4j-api:${slf4jVersion}",
+
+            // testCompile
+            junit:           "junit:junit:${junitVersion}",
+            assertj: "org.assertj:assertj-core:${assertjVersion}",
+            logback: "ch.qos.logback:logback-classic:${logbackVersion}",
+            mockito: "org.mockito:mockito-core:${mockitoVersion}",
+
+            // Vert.x addon
+            vertx_core: "io.vertx:vertx-core:${vertxVersion}",
+            vertx_metrics: "io.vertx:vertx-dropwizard-metrics:${vertxVersion}",
+            vertx_rx_java: "io.vertx:vertx-rx-java:${vertxVersion}",
+            vertx_web: "io.vertx:vertx-web:${vertxVersion}",
+            vertx_web_client: "io.vertx:vertx-web-client:${vertxVersion}",
+            vertx_health_check: "io.vertx:vertx-health-check:${vertxVersion}",
+            vertx_stomp: "io.vertx:vertx-stomp:${vertxVersion}",
+            vertx_rabbitmq_client: "io.vertx:vertx-rabbitmq-client:${vertxVersion}",
+            vertx_unit: "io.vertx:vertx-unit:${vertxVersion}"
+    ]
+}
