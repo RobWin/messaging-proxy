@@ -30,6 +30,7 @@ public class MainVerticleTest {
                 LOG.debug("Deployed verticle {}", verticle);
                 context.asyncAssertSuccess();
             });
+        
     }
 
     @After
