@@ -25,11 +25,8 @@ public class MainVerticleTest {
     public void setUp(TestContext context) {
         LOG.info("Start Vertx");
         vertx = Vertx.vertx();
-        vertx.rxDeployVerticle(MainVerticle.class.getName())
-            .subscribe(verticle -> {
-                LOG.debug("Deployed verticle {}", verticle);
-                context.asyncAssertSuccess();
-            });
+        vertx.deployVerticle(MainVerticle.class.getName(),
+                context.asyncAssertSuccess());
         
     }
 
