@@ -7,6 +7,7 @@ ext {
     logbackVersion = '0.9.26'
     mockitoVersion = '1.10.19'
     vertxVersion = '3.4.1'
+    prometheusVersion = '0.0.21'
 
     libraries = [
             // compile
@@ -27,6 +28,12 @@ ext {
             vertx_health_check: "io.vertx:vertx-health-check:${vertxVersion}",
             vertx_stomp: "io.vertx:vertx-stomp:${vertxVersion}",
             vertx_rabbitmq_client: "io.vertx:vertx-rabbitmq-client:${vertxVersion}",
-            vertx_unit: "io.vertx:vertx-unit:${vertxVersion}"
+            vertx_unit: "io.vertx:vertx-unit:${vertxVersion}",
+
+            // Prometheus addon
+            prometheus: "io.prometheus:simpleclient_common:${prometheusVersion}",
+            prometheus_dropwizard: "io.prometheus:simpleclient_dropwizard:${prometheusVersion}"
+
+
     ]
 }

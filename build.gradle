@@ -17,7 +17,9 @@ apply from: "./libraries.gradle"
 group 'com.qivicon.backend.messaging'
 version '1.0.0-SNAPSHOT'
 
-mainClassName = 'io.vertx.core.Launcher'
+mainClassName = 'com.qivicon.backend.messaging.ApplicationLauncher'
+def watchForChange = 'src/**/*'
+def doOnChange = './gradlew classes'
 
 tasks.withType(JavaCompile) {
     sourceCompatibility = "1.8"
@@ -33,13 +35,15 @@ repositories {
 
 dependencies {
     //compile ( libraries.vertx_core)
+    //compile ( libraries.vertx_metrics)
     compile ( libraries.vertx_metrics)
     compile ( libraries.vertx_rx_java)
     compile ( libraries.vertx_web)
     compile ( libraries.vertx_health_check)
-    compile ( libraries.vertx_stomp)
     compile ( libraries.vertx_rabbitmq_client)
     compile ( libraries.logback)
+    compile ( libraries.prometheus)
+    compile ( libraries.prometheus_dropwizard)
 
     testCompile ( libraries.junit)
     testCompile ( libraries.assertj)
@@ -49,10 +53,15 @@ dependencies {
 
 shadowJar {
     classifier = 'fat'
-    manifest {
-        attributes 'Main-Verticle': 'com.qivicon.backend.messaging.MainVerticle'
-    }
     mergeServiceFiles {
         include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
     }
+}
+
+run {
+    args = ['run', mainVerticleName, "--redeploy=$watchForChange", "--launcher-class=$mainClassName", "--on-redeploy=$doOnChange"]
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.3'
 }
