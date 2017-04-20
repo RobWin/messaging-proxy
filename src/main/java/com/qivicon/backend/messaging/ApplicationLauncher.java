@@ -1,6 +1,6 @@
 package com.qivicon.backend.messaging;
 
-import com.qivicon.backend.messaging.verticles.MainVerticle;
+import com.qivicon.backend.messaging.verticles.ApplicationVerticle;
 import io.vertx.core.VertxOptions;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 
@@ -28,7 +28,7 @@ public class ApplicationLauncher extends io.vertx.core.Launcher {
 
     @Override
     protected String getMainVerticle(){
-        return MainVerticle.class.getName();
+        return ApplicationVerticle.class.getName();
     }
 
     @Override

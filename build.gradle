@@ -34,10 +34,9 @@ repositories {
 }
 
 dependencies {
-    //compile ( libraries.vertx_core)
-    //compile ( libraries.vertx_metrics)
+    compile ( libraries.vertx_core)
     compile ( libraries.vertx_metrics)
-    compile ( libraries.vertx_rx_java)
+    //compile ( libraries.vertx_rx_java)
     compile ( libraries.vertx_web)
     compile ( libraries.vertx_health_check)
     compile ( libraries.vertx_rabbitmq_client)
@@ -59,7 +58,7 @@ shadowJar {
 }
 
 run {
-    args = ['run', mainVerticleName, "--redeploy=$watchForChange", "--launcher-class=$mainClassName", "--on-redeploy=$doOnChange"]
+    args = ['run', "--redeploy=$watchForChange", "--launcher-class=$mainClassName", "--on-redeploy=$doOnChange"]
 }
 
 task wrapper(type: Wrapper) {

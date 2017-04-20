@@ -1,8 +1,8 @@
 package com.qivicon.backend.messaging.rabbitmq;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.rxjava.core.Vertx;
-import io.vertx.rxjava.rabbitmq.RabbitMQClient;
+import io.vertx.rabbitmq.RabbitMQClient;
 
 public class RabbitMQClientFactory {
 
