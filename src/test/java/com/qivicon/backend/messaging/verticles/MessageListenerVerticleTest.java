@@ -1,10 +1,10 @@
-package com.qivicon.backend.messaging;
+package com.qivicon.backend.messaging.verticles;
 
 
-import com.qivicon.backend.messaging.events.Events;
-import com.qivicon.backend.messaging.rabbitmq.MessagingService;
-import com.qivicon.backend.messaging.verticles.MessageListenerVerticle;
-import io.vertx.core.Vertx;
+import com.qivicon.backend.messaging.BaseTest;
+import com.qivicon.backend.messaging.verticles.events.Events;
+import com.qivicon.backend.messaging.services.MessagingService;
+import io.vertx.core.Future;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -13,39 +13,29 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.*;
 
 @RunWith(VertxUnitRunner.class)
-public class MessageListenerVerticleTest extends BaseVerticleTest  {
+public class MessageListenerVerticleTest extends BaseTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HttpServerVerticleTest.class);
-
-    private Vertx vertx;
     private MessagingService messagingService;
 
     @Before
     public void setUp(TestContext context) {
-        LOG.info("Start Vertx");
-        vertx = Vertx.vertx();
+        super.setUp(context);
         messagingService = Mockito.mock(MessagingService.class);
-        MessageListenerVerticle verticle = new MessageListenerVerticle(messagingService);
-
+        when(messagingService.start()).thenReturn(Future.succeededFuture());
+        when(messagingService.stop()).thenReturn(Future.succeededFuture());
+        MessageListenerVerticle verticle = new MessageListenerVerticle(() -> messagingService);
         vertx.deployVerticle(verticle,
                 context.asyncAssertSuccess());
-
-        // Report uncaught exceptions as Vert.x Unit failures
-        vertx.exceptionHandler(context.exceptionHandler());
     }
 
     @After
     public void tearDown(TestContext context) {
-        LOG.info("Stop Vertx");
-        vertx.close(context.asyncAssertSuccess());
+        super.tearDown(context);
     }
 
     @Test(timeout = 10000)
@@ -56,7 +46,7 @@ public class MessageListenerVerticleTest extends BaseVerticleTest  {
             LOG.info("Mock: MessagingService::onClientConnect invoked");
             async.complete();
             return null;
-        }).when(messagingService).onClientConnect(anyString());
+        }).when(messagingService).onClientConnect(anyObject());
         //When
         vertx.eventBus().send(Events.WEBSOCKET_CONNECTION_OPENED, HOME_BASE_ID);
         //Then
@@ -72,7 +62,7 @@ public class MessageListenerVerticleTest extends BaseVerticleTest  {
             LOG.info("Mock: MessagingService::onClientDisconnect invoked");
             async.complete();
             return null;
-        }).when(messagingService).onClientDisconnect(anyString());
+        }).when(messagingService).onClientDisconnect(anyObject());
         //When
         vertx.eventBus().send(Events.WEBSOCKET_CONNECTION_CLOSED, HOME_BASE_ID);
         //Then

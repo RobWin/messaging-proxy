@@ -1,0 +1,60 @@
+package com.qivicon.backend.messaging.verticles;
+
+import com.qivicon.backend.messaging.BaseTest;
+import com.qivicon.backend.messaging.verticles.websocket.WebSocketHandler;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import static com.qivicon.backend.messaging.verticles.events.Events.WEBSOCKET_OUTBOUND_MESSAGE;
+
+@RunWith(VertxUnitRunner.class)
+public class HttpServerVerticleSenderTest extends BaseTest {
+
+    private EventBus eventBus;
+
+    @Before
+    public void setUp(TestContext context) {
+        super.setUp(context);
+        eventBus = vertx.eventBus();
+        HttpServerVerticle verticle = new HttpServerVerticle(new WebSocketHandler(eventBus));
+        vertx.deployVerticle(verticle,
+                context.asyncAssertSuccess());
+        
+    }
+
+    @After
+    public void tearDown(TestContext context) {
+        super.tearDown(context);
+    }
+
+    @Test(timeout = 10000)
+    public void shouldConsumeAndSendOutboundMessage(TestContext context) {
+        final Async async = context.async();
+        connectWebSocketClient(vertx, webSocket -> {
+            LOG.info("WebSocket client connected");
+            eventBus.send(WEBSOCKET_OUTBOUND_MESSAGE, MESSAGE_CONTENT_SERVER);
+            webSocket
+                    .handler(message -> {
+                        LOG.info("Received message by server: {}", message.toString());
+                        context.assertEquals(MESSAGE_CONTENT_SERVER, message.toJsonObject());
+                        webSocket.close();
+                    })
+                    .closeHandler(event -> {
+                        LOG.info("WebSocket connection closed");
+                        // Client connection should be closed gracefully
+                        async.complete();
+                    })
+                    .exceptionHandler(exception -> {
+                        LOG.warn("WebSocket failed");
+                        context.fail(exception);
+                    });
+        });
+    }
+
+}

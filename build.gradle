@@ -48,6 +48,7 @@ dependencies {
     testCompile ( libraries.assertj)
     testCompile ( libraries.mockito)
     testCompile ( libraries.vertx_unit)
+    testCompile ( libraries.testcontainers )
 }
 
 shadowJar {

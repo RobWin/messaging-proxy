@@ -2,8 +2,8 @@ package com.qivicon.backend.messaging.verticles;
 
 import com.codahale.metrics.SharedMetricRegistries;
 import com.qivicon.backend.messaging.config.Configuration;
-import com.qivicon.backend.messaging.metrics.MetricsHandler;
-import com.qivicon.backend.messaging.websocket.WebSocketHandler;
+import com.qivicon.backend.messaging.verticles.metrics.MetricsHandler;
+import com.qivicon.backend.messaging.verticles.websocket.WebSocketHandler;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.ServerWebSocket;
@@ -56,11 +56,10 @@ public class HttpServerVerticle extends AbstractVerticle {
                     startFuture.complete();
                 } else {
                     Throwable exception = event.cause();
-                    LOG.error("Failed to start HttpServer", exception);
+                    LOG.error("Failed to connect HttpServer", exception);
                     startFuture.fail(exception);
                 }
             }
-
         );
     }
 

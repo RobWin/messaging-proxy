@@ -1,65 +1,85 @@
 package com.qivicon.backend.messaging.verticles;
 
-import com.qivicon.backend.messaging.events.Events;
-import com.qivicon.backend.messaging.rabbitmq.MessagingService;
-import com.qivicon.backend.messaging.rabbitmq.RabbitMQService;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
+import com.qivicon.backend.messaging.verticles.events.Events;
+import com.qivicon.backend.messaging.services.MessagingService;
+import io.vertx.core.*;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Supplier;
 
 public class MessageSenderVerticle extends AbstractVerticle {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageSenderVerticle.class);
-    private MessageConsumer<String> messageConsumer;
-    private final MessagingService messagingService;
+    private MessageConsumer<JsonObject> messageConsumer;
+    private final Supplier<MessagingService> messagingServiceFactory;
+    private MessagingService messagingService;
 
-    public MessageSenderVerticle(){
-        this.messagingService = new RabbitMQService();
-
+    public MessageSenderVerticle(Supplier<MessagingService> messagingServiceFactory){
+        this.messagingServiceFactory = messagingServiceFactory;
     }
 
-    public MessageSenderVerticle(MessagingService messagingService){
-        this.messagingService = messagingService;
+    @Override
+    public void init(Vertx vertx, Context context) {
+        super.init(vertx, context);
+        messagingService = messagingServiceFactory.get();
     }
 
     @Override
     public void start(Future<Void> startFuture) throws InterruptedException {
-        //messagingService.start(startFuture);
-        messageConsumer = vertx.eventBus().consumer(Events.WEBSOCKET_INBOUND_MESSAGE);
-        messageConsumer.completionHandler(event -> {
-           if(event.succeeded()) {
-               LOG.info("Inbound message event consumer registration has reached all nodes");
-               LOG.info("Started Verticle: {}", this.getClass().getName());
-               startFuture.complete();
+        Future<Void> inboundMessageConsumerFuture = Future.future();
+        Future<Void> messagingServiceFuture = messagingService.start();
 
-           }else{
-               LOG.warn("Inbound message event consumer registration has failed!");
-               startFuture.fail(event.cause());
-           }
-        });
+        messageConsumer = vertx.eventBus().consumer(Events.WEBSOCKET_INBOUND_MESSAGE);
+        messageConsumer.completionHandler(inboundMessageConsumerFuture.completer());
         messageConsumer.handler(
-                (message) -> {
-                    LOG.info("Event '{}' consumed: {}", Events.WEBSOCKET_INBOUND_MESSAGE, message.body());
-                    messagingService.processMessage(message.body());
-                }
+            (message) -> {
+                LOG.info("Event '{}' consumed: {}", Events.WEBSOCKET_INBOUND_MESSAGE, message.body());
+                messagingService.processMessage(message.body()).setHandler(
+                    event -> {
+                        if (event.succeeded()) {
+                            LOG.info("Inbound message processed");
+                        }else{
+                            LOG.info("Failed to process inbound message", event.cause());
+                        }
+                    }
+                );
+            }
         );
+
+        CompositeFuture.all(messagingServiceFuture, inboundMessageConsumerFuture)
+            .setHandler(startEvent -> {
+                if (startEvent.succeeded()) {
+                    // All consumers unregistered
+                    LOG.info("Started Verticle: {}", this.getClass().getName());
+                    startFuture.complete();
+                } else {
+                    // At least one server failed
+                    startFuture.fail(startEvent.cause());
+                }
+            });
     }
 
 
     @Override
     public void stop(Future<Void> stopFuture) throws InterruptedException {
-        messageConsumer.unregister(event -> {
-            if(event.succeeded()){
-                LOG.info("Inbound message event consumer un-registration has reached all nodes");
-                LOG.info("Stopped Verticle: {}", this.getClass().getName());
-                stopFuture.complete();
-            }else{
-                LOG.info("Inbound message event consumer un-registration has failed", event.cause());
-                stopFuture.fail(event.cause());
-            }
-        });
-        //messagingService.stop(stopFuture);
+        Future<Void> inboundMessageConsumerFuture = Future.future();
+        Future<Void> messagingServiceFuture = messagingService.stop();
+
+        messageConsumer.unregister(inboundMessageConsumerFuture.completer());
+
+        CompositeFuture.all(messagingServiceFuture, inboundMessageConsumerFuture)
+            .setHandler(closeEvent -> {
+                if (closeEvent.succeeded()) {
+                    // All consumers unregistered
+                    LOG.info("Stopped Verticle: {}", this.getClass().getName());
+                    stopFuture.complete();
+                } else {
+                    // At least one server failed
+                    stopFuture.fail(closeEvent.cause());
+                }
+            });
     }
 }

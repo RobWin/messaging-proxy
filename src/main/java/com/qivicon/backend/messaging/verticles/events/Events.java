@@ -1,4 +1,4 @@
-package com.qivicon.backend.messaging.events;
+package com.qivicon.backend.messaging.verticles.events;
 
 public class Events {
 

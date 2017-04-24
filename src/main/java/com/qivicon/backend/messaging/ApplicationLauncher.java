@@ -4,7 +4,7 @@ import com.qivicon.backend.messaging.verticles.ApplicationVerticle;
 import io.vertx.core.VertxOptions;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 
-import static com.qivicon.backend.messaging.utils.LoggingUtils.configureLogging;
+import static com.qivicon.backend.messaging.logging.LoggingUtils.configureLogging;
 
 public class ApplicationLauncher extends io.vertx.core.Launcher {
 

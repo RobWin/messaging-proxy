@@ -1,4 +1,4 @@
-package com.qivicon.backend.messaging.utils;
+package com.qivicon.backend.messaging.logging;
 
 
 import io.vertx.core.logging.LoggerFactory;

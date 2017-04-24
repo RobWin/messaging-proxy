@@ -8,6 +8,7 @@ ext {
     mockitoVersion = '1.10.19'
     vertxVersion = '3.4.1'
     prometheusVersion = '0.0.21'
+    testcontainersVersion = '1.2.1'
 
     libraries = [
             // compile
@@ -18,6 +19,7 @@ ext {
             assertj: "org.assertj:assertj-core:${assertjVersion}",
             logback: "ch.qos.logback:logback-classic:${logbackVersion}",
             mockito: "org.mockito:mockito-core:${mockitoVersion}",
+            testcontainers: "org.testcontainers:testcontainers:${testcontainersVersion}",
 
             // Vert.x addon
             vertx_core: "io.vertx:vertx-core:${vertxVersion}",

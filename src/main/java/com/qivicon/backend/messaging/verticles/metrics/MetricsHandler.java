@@ -1,4 +1,4 @@
-package com.qivicon.backend.messaging.metrics;
+package com.qivicon.backend.messaging.verticles.metrics;
 
 import com.codahale.metrics.MetricRegistry;
 import io.prometheus.client.CollectorRegistry;
