@@ -42,7 +42,7 @@ public class HttpServerVerticleReceiverTest extends BaseTest {
     @Test(timeout = 10000)
     public void serverShouldReceiveMessage(TestContext context) {
         final Async async = context.async();
-        connectWebSocketClient(vertx, webSocket -> {
+        connect(vertx, webSocket -> {
             LOG.info("WebSocket client connected");
             webSocket
                 .writeTextMessage(MESSAGE_CONTENT_CLIENT.encode())

@@ -2,6 +2,7 @@ package com.qivicon.backend.messaging.verticles;
 
 import com.qivicon.backend.messaging.BaseTest;
 import com.qivicon.backend.messaging.verticles.websocket.WebSocketHandler;
+import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -12,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import static com.qivicon.backend.messaging.verticles.events.Events.WEBSOCKET_OUTBOUND_MESSAGE;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpServerVerticleSenderTest extends BaseTest {
@@ -36,9 +38,11 @@ public class HttpServerVerticleSenderTest extends BaseTest {
     @Test(timeout = 10000)
     public void shouldConsumeAndSendOutboundMessage(TestContext context) {
         final Async async = context.async();
-        connectWebSocketClient(vertx, webSocket -> {
+        connect(vertx, webSocket -> {
             LOG.info("WebSocket client connected");
-            eventBus.send(WEBSOCKET_OUTBOUND_MESSAGE, MESSAGE_CONTENT_SERVER);
+            eventBus.sender(WEBSOCKET_OUTBOUND_MESSAGE)
+                .exceptionHandler(e -> LOG.warn("Failed to send message", e))
+                .send(MESSAGE_CONTENT_SERVER);
             webSocket
                     .handler(message -> {
                         LOG.info("Received message by server: {}", message.toString());
@@ -54,6 +58,16 @@ public class HttpServerVerticleSenderTest extends BaseTest {
                         LOG.warn("WebSocket failed");
                         context.fail(exception);
                     });
+        });
+    }
+
+    @Test(timeout = 10000)
+    public void shouldFailToConnect(TestContext context) {
+        final Async async = context.async();
+        connectWithoutCredentials(vertx, exception -> {
+            assertThat(exception).isInstanceOf(WebSocketHandshakeException.class)
+                    .hasMessageContaining("401");
+            async.complete();
         });
     }
 

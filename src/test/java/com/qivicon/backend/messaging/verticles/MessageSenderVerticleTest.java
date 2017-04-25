@@ -40,13 +40,13 @@ public class MessageSenderVerticleTest extends BaseTest {
     @Test(timeout = 10000)
     public void shouldConsumeInboundMessage(TestContext context) {
         Async async = context.async();
-        when(messagingService.processMessage(anyObject())).then(invocation -> {
+        when(messagingService.processMessage(anyString(), anyObject())).then(invocation -> {
             LOG.info("Mock: MessagingService::processMessage invoked");
             async.complete();
             return Future.succeededFuture();
         });
         vertx.eventBus().send(Events.WEBSOCKET_INBOUND_MESSAGE, MESSAGE_CONTENT_CLIENT);
         async.await();
-        verify(messagingService).processMessage(anyObject());
+        verify(messagingService).processMessage(anyString(), anyObject());
     }
 }

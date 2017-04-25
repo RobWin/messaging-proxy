@@ -37,7 +37,7 @@ public class MessageSenderVerticle extends AbstractVerticle {
         messageConsumer.handler(
             (message) -> {
                 LOG.info("Event '{}' consumed: {}", Events.WEBSOCKET_INBOUND_MESSAGE, message.body());
-                messagingService.processMessage(message.body()).setHandler(
+                messagingService.processMessage("clientId", message.body()).setHandler(
                     event -> {
                         if (event.succeeded()) {
                             LOG.info("Inbound message processed");

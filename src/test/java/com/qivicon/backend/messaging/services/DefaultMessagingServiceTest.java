@@ -68,7 +68,7 @@ public class DefaultMessagingServiceTest extends BaseTest {
         //When
         Async async = context.async();
         messagingService.start();
-        messagingService.processMessage(MESSAGE_CONTENT_CLIENT).setHandler(event -> {
+        messagingService.processMessage("clientId", MESSAGE_CONTENT_CLIENT).setHandler(event -> {
                 if(event.succeeded()){
                     async.complete();
                 }else{
@@ -78,7 +78,7 @@ public class DefaultMessagingServiceTest extends BaseTest {
         );
 
         //Then
-        verify(client).basicPublish("testQueue", "", MESSAGE_CONTENT_CLIENT);
+        verify(client).basicPublish("to_backend.direct", "clientId", MESSAGE_CONTENT_CLIENT);
     }
 
 

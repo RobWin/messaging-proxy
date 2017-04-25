@@ -27,7 +27,7 @@ public class DefaultMessagingService implements MessagingService {
         client.connect().setHandler(connectionEvent -> {
                 if(connectionEvent.succeeded()){
                     startFuture.complete();
-                }{
+                }else{
                     startFuture.fail(connectionEvent.cause());
                 }
             }
