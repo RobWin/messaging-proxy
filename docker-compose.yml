@@ -1,0 +1,31 @@
+version: '3'
+services:
+  rabbitmq:
+    image: "rabbitmq:3.6.9-management-alpine"
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    labels:
+      NAME: "rabbitmq"
+
+  messaging-proxy:
+    image: "messaging-proxy:latest"
+    container_name: messaging-proxy
+    environment:
+      rabbitmq.host: "rabbitmq"
+      rabbitmq.user: "rabbitmq"
+      rabbitmq.password: "rabbitmq"
+    links:
+        - rabbitmq
+    ports:
+      - "8080:8080"
+    labels:
+      NAME: "messaging-proxy"
+    depends_on:
+        - rabbitmq

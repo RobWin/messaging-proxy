@@ -6,6 +6,8 @@ buildscript {
 
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
+        classpath 'com.bmuschko:gradle-docker-plugin:3.0.6'
+        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.22"
     }
 }
 
@@ -13,6 +15,9 @@ apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply from: "./libraries.gradle"
+apply plugin: 'com.bmuschko.docker-java-application'
+apply plugin: 'docker-compose'
+
 
 group 'com.qivicon.backend.messaging'
 version '1.0.0-SNAPSHOT'
@@ -36,10 +41,10 @@ repositories {
 dependencies {
     compile ( libraries.vertx_core)
     compile ( libraries.vertx_metrics)
-    //compile ( libraries.vertx_rx_java)
     compile ( libraries.vertx_web)
+    compile ( libraries.vertx_config)
     compile ( libraries.vertx_health_check)
-    compile ( libraries.vertx_rabbitmq_client)
+    compile ( libraries.rabbitmq_client)
     compile ( libraries.logback)
     compile ( libraries.prometheus)
     compile ( libraries.prometheus_dropwizard)
@@ -61,6 +66,17 @@ shadowJar {
 run {
     args = ['run', "--redeploy=$watchForChange", "--launcher-class=$mainClassName", "--on-redeploy=$doOnChange"]
 }
+
+docker {
+    javaApplication {
+        baseImage = 'openjdk:8-jre-alpine'
+        maintainer = 'Robert Winkler'
+        ports = [8080]
+        tag = 'messaging-proxy:latest'
+    }
+}
+
+composeUp.dependsOn dockerBuildImage
 
 task wrapper(type: Wrapper) {
     gradleVersion = '3.3'

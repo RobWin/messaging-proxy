@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
+import static com.qivicon.backend.messaging.client.rabbitmq.RabbitMQClient.CONFIG_PREXIX;
+
 @RunWith(VertxUnitRunner.class)
 public class RabbitMQClientTest extends BaseTest {
 
@@ -40,10 +42,10 @@ public class RabbitMQClientTest extends BaseTest {
     public void setUp(TestContext context) {
         super.setUp(context);
         JsonObject config = new JsonObject()
-                .put("host", rabbitMQ.getContainerIpAddress())
-                .put("port", rabbitMQ.getMappedPort(5672))
-                .put("user", "guest")
-                .put("password", "guest");
+                .put(CONFIG_PREXIX + "host", rabbitMQ.getContainerIpAddress())
+                .put(CONFIG_PREXIX + "port", rabbitMQ.getMappedPort(5672))
+                .put(CONFIG_PREXIX + "user", "guest")
+                .put(CONFIG_PREXIX + "password", "guest");
         client = RabbitMQClientFactory.create(vertx, config).get();
 
         waitUntilRabbitMQisStarted(context);

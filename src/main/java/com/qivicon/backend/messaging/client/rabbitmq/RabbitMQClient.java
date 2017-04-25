@@ -28,15 +28,18 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
 
     private Connection connection;
     private Channel channel;
+    public static final String CONFIG_PREXIX = "rabbitmq.";
+    private final ConnectionFactory connectionFactory;
 
-    public static RabbitMQClient create(Vertx vertx, JsonObject config){
+    static RabbitMQClient create(Vertx vertx, JsonObject config){
         return new RabbitMQClient(vertx, config);
     }
 
     private RabbitMQClient(Vertx vertx, JsonObject config) {
         this.vertx = vertx;
         this.config = config;
-        this.retries = config.getInteger("connectionRetries", 3);
+        this.retries = config.getInteger(CONFIG_PREXIX + "connectionRetries", 3);
+        this.connectionFactory = new ConnectionFactory();
     }
 
     private void newConnection() throws IOException, TimeoutException {
@@ -47,8 +50,7 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
         log.info("Created channel {} to RabbitMQ", channel.getChannelNumber());
     }
 
-    private static Connection newConnection(JsonObject config) throws IOException, TimeoutException {
-        ConnectionFactory connectionFactory = new ConnectionFactory();
+    private Connection newConnection(JsonObject config) throws IOException, TimeoutException {
         String uri = config.getString("uri");
         // Use uri if set, otherwise support individual connection parameters
         if (uri != null) {
@@ -58,58 +60,58 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
                 throw new IllegalArgumentException("Invalid rabbitmq connection uri " + uri);
             }
         } else {
-            String user = config.getString("user");
+            String user = config.getString(CONFIG_PREXIX + "user");
             if (user != null) {
                 connectionFactory.setUsername(user);
             }
-            String password = config.getString("password");
+            String password = config.getString(CONFIG_PREXIX + "password");
             if (password != null) {
                 connectionFactory.setPassword(password);
             }
-            String host = config.getString("host");
+            String host = config.getString(CONFIG_PREXIX + "host");
             if (host != null) {
                 connectionFactory.setHost(host);
             }
-            Integer port = config.getInteger("port");
+            Integer port = config.getInteger(CONFIG_PREXIX + "port");
             if (port != null) {
                 connectionFactory.setPort(port);
             }
 
-            String virtualHost = config.getString("virtualHost");
+            String virtualHost = config.getString(CONFIG_PREXIX + "virtualHost");
             if (virtualHost != null) {
                 connectionFactory.setVirtualHost(virtualHost);
             }
         }
 
         // Connection timeout
-        Integer connectionTimeout = config.getInteger("connectionTimeout");
+        Integer connectionTimeout = config.getInteger(CONFIG_PREXIX + "connectionTimeout");
         if (connectionTimeout != null) {
             connectionFactory.setConnectionTimeout(connectionTimeout);
         }
 
-        Integer requestedHeartbeat = config.getInteger("requestedHeartbeat");
+        Integer requestedHeartbeat = config.getInteger(CONFIG_PREXIX + "requestedHeartbeat");
         if (requestedHeartbeat != null) {
             connectionFactory.setRequestedHeartbeat(requestedHeartbeat);
         }
 
-        Integer handshakeTimeout = config.getInteger("handshakeTimeout");
+        Integer handshakeTimeout = config.getInteger(CONFIG_PREXIX + "handshakeTimeout");
         if (handshakeTimeout != null) {
             connectionFactory.setHandshakeTimeout(handshakeTimeout);
         }
 
 
-        Integer requestedChannelMax = config.getInteger("requestedChannelMax");
+        Integer requestedChannelMax = config.getInteger(CONFIG_PREXIX + "requestedChannelMax");
         if (requestedChannelMax != null) {
             connectionFactory.setRequestedChannelMax(requestedChannelMax);
         }
 
-        Integer networkRecoveryInterval = config.getInteger("networkRecoveryInterval");
+        Integer networkRecoveryInterval = config.getInteger(CONFIG_PREXIX + "networkRecoveryInterval");
         if (networkRecoveryInterval != null) {
             connectionFactory.setNetworkRecoveryInterval(networkRecoveryInterval);
         }
 
         // Automatic recovery of connections/channels/etc.
-        boolean automaticRecoveryEnabled = config.getBoolean("automaticRecoveryEnabled", true);
+        boolean automaticRecoveryEnabled = config.getBoolean(CONFIG_PREXIX + "automaticRecoveryEnabled", true);
         connectionFactory.setAutomaticRecoveryEnabled(automaticRecoveryEnabled);
 
         return connectionFactory.newConnection();
@@ -124,7 +126,9 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
                 newConnection();
                 future.complete();
             } catch (IOException | TimeoutException e) {
-                log.error("Could not connect to RabbitMQ", e);
+                log.error(String.format("Could not connect to RabbitMQ [%s:%d]",
+                        connectionFactory.getHost(),
+                        connectionFactory.getPort()), e);
                 if (retries > 0) {
                     try {
                         reconnect(future);
@@ -140,7 +144,9 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
     }
 
     private void reconnect(Future<Connection> future) throws IOException {
-        log.info("Attempting to reconnect to RabbitMQ");
+        log.info("Attempting to reconnect to RabbitMQ [{}:{}]",
+                connectionFactory.getHost(),
+                connectionFactory.getPort());
         AtomicInteger attempts = new AtomicInteger(0);
         int retries = this.retries;
         long delay = config.getLong("connectionRetryDelay", 10000L); // Every 10 seconds by default
@@ -148,17 +154,19 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
             int attempt = attempts.incrementAndGet();
             if (attempt == retries) {
                 vertx.cancelTimer(id);
-                log.info("Max number of newConnection attempts (" + retries + ") reached. Will not attempt to newConnection again");
-                future.fail("Max number of newConnection attempts (" + retries + ") reached. Will not attempt to newConnection again");
+                log.info("Max number of connection attempts (" + retries + ") reached. Will not attempt to connect again");
+                future.fail("Max number of connect attempts (" + retries + ") reached. Will not attempt to connect again");
             } else {
                 try {
                     log.debug("Reconnect attempt # " + attempt);
                     newConnection();
                     vertx.cancelTimer(id);
-                    log.info("Successfully reconnected to RabbitMQ (attempt # " + attempt + ")");
+                    log.info("Successfully reconnected to RabbitMQ [{}:{}] (attempt # " + attempt + ")",
+                            connectionFactory.getHost(),
+                            connectionFactory.getPort());
                     future.complete(connection);
                 } catch (IOException | TimeoutException e) {
-                    log.debug("Failed to newConnection attempt # " + attempt, e);
+                    log.debug("Failed to connection attempt # " + attempt, e);
                 }
             }
         });

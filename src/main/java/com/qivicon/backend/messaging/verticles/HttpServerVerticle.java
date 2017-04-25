@@ -46,7 +46,7 @@ public class HttpServerVerticle extends AbstractVerticle {
         //healthCheckHandler.register("healthCheck", future -> future.complete(Status.OK()));
 
         AuthProvider authProvider = new QbertAuthProvider();
-        AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, "qbert-messaging");
+        AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, "messaging");
 
         Router router = Router.router(vertx);
         router.route().handler(basicAuthHandler);

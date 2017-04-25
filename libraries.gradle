@@ -6,6 +6,7 @@ ext {
     assertjVersion = '3.6.2'
     logbackVersion = '0.9.26'
     mockitoVersion = '1.10.19'
+    rabbitmqVersion = '4.1.0'
     vertxVersion = '3.4.1'
     prometheusVersion = '0.0.21'
     testcontainersVersion = '1.2.1'
@@ -13,6 +14,7 @@ ext {
     libraries = [
             // compile
             slf4j: "org.slf4j:slf4j-api:${slf4jVersion}",
+            rabbitmq_client: "com.rabbitmq:amqp-client:${rabbitmqVersion}",
 
             // testCompile
             junit:           "junit:junit:${junitVersion}",
@@ -23,13 +25,11 @@ ext {
 
             // Vert.x addon
             vertx_core: "io.vertx:vertx-core:${vertxVersion}",
+            vertx_config: "io.vertx:vertx-config:${vertxVersion}",
             vertx_metrics: "io.vertx:vertx-dropwizard-metrics:${vertxVersion}",
-            vertx_rx_java: "io.vertx:vertx-rx-java:${vertxVersion}",
             vertx_web: "io.vertx:vertx-web:${vertxVersion}",
             vertx_web_client: "io.vertx:vertx-web-client:${vertxVersion}",
             vertx_health_check: "io.vertx:vertx-health-check:${vertxVersion}",
-            vertx_stomp: "io.vertx:vertx-stomp:${vertxVersion}",
-            vertx_rabbitmq_client: "io.vertx:vertx-rabbitmq-client:${vertxVersion}",
             vertx_unit: "io.vertx:vertx-unit:${vertxVersion}",
 
             // Prometheus addon

@@ -15,7 +15,7 @@ public class QbertAuthProvider implements AuthProvider{
         String clientId = authInfo.getString("username");
         String clientPassword = authInfo.getString("password");
 
-        // Check credentials
+        // TODO Check credentials
 
         resultHandler.handle(Future.succeededFuture(new HomeBase(authInfo)));
     }
