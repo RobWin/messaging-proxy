@@ -17,6 +17,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply from: "./libraries.gradle"
 apply plugin: 'com.bmuschko.docker-java-application'
 apply plugin: 'docker-compose'
+apply from: "./gradle/integTest.gradle"
 
 
 group 'com.qivicon.backend.messaging'
@@ -54,6 +55,8 @@ dependencies {
     testCompile ( libraries.mockito)
     testCompile ( libraries.vertx_unit)
     testCompile ( libraries.testcontainers )
+    testCompile ( libraries.okhttp )
+    testCompile ( libraries.concurrentunit )
 }
 
 shadowJar {
@@ -77,6 +80,7 @@ docker {
 }
 
 composeUp.dependsOn dockerBuildImage
+dockerCompose.isRequiredBy(integTest)
 
 task wrapper(type: Wrapper) {
     gradleVersion = '3.3'

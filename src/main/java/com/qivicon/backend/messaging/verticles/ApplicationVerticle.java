@@ -1,6 +1,7 @@
 package com.qivicon.backend.messaging.verticles;
 
 
+import com.codahale.metrics.SharedMetricRegistries;
 import com.qivicon.backend.messaging.client.MessagingClient;
 import com.qivicon.backend.messaging.client.rabbitmq.RabbitMQClientFactory;
 import com.qivicon.backend.messaging.services.MessagingService;
@@ -19,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+
+import static com.qivicon.backend.messaging.ApplicationLauncher.REGISTRY_NAME;
 
 public class ApplicationVerticle extends AbstractVerticle {
 
@@ -50,7 +53,10 @@ public class ApplicationVerticle extends AbstractVerticle {
 
     private CompositeFuture deployVerticles(JsonObject config) {
         List<Future> endpointFutures = new ArrayList<>();
-        Supplier<MessagingClient> clientFactory = RabbitMQClientFactory.create(vertx, config);
+        Supplier<MessagingClient> clientFactory = RabbitMQClientFactory.create(
+                vertx,
+                SharedMetricRegistries.getOrCreate(REGISTRY_NAME),
+                config);
         Supplier<MessagingService> messagingServiceFactory = MessagingServiceFactory
                 .create(clientFactory);
 

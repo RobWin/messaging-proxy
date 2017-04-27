@@ -53,7 +53,7 @@ public class DefaultMessagingService implements MessagingService {
         String queueName = clientId;
         String routingKey = clientId;
         Future<String> messageConsumerFuture = createExchangeAndBindToQueue(TO_GATEWAY_EXCHANGE, queueName, routingKey)
-                .compose(bindOk -> client.basicConsume(clientId, Events.WEBSOCKET_INBOUND_MESSAGE, true, routingKey));
+                .compose(bindOk -> client.basicConsume(clientId, Events.WEBSOCKET_INBOUND_MESSAGE, routingKey));
 
         messageConsumerFuture.setHandler(event -> {
             if(event.succeeded()){

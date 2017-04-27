@@ -5,6 +5,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
+import io.vertx.core.eventbus.MessageProducer;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,7 @@ public class EventBusForwarder extends DefaultConsumer {
         super(channel);
         this.vertx = vertx;
         this.eventBusAddress = eventBusAddress;
-        LOG.info("Created consumer for channel {} which sends consumed messages to event bus address '{}'", channel.getChannelNumber(), eventBusAddress);
+        LOG.debug("Created consumer for channel {} which sends consumed messages to event bus address '{}'", channel.getChannelNumber(), eventBusAddress);
     }
 
     @Override
@@ -47,10 +49,42 @@ public class EventBusForwarder extends DefaultConsumer {
         // Parse the body
         try {
             msg.put("body", parse(properties, body));
-            vertx.runOnContext(v -> vertx.eventBus().send(eventBusAddress, msg));
+            vertx.runOnContext(v -> {
+                long deliveryTag = envelope.getDeliveryTag();
+                DeliveryOptions deliveryOptions = new DeliveryOptions().setSendTimeout(5000);
+                MessageProducer<JsonObject> sender = vertx.eventBus().sender(eventBusAddress, deliveryOptions);
+                sender.exceptionHandler(exception -> rejectMessage(deliveryTag, exception));
+                LOG.debug("Send message to to address {}", eventBusAddress);
+                sender.send(msg, replyEvent -> {
+                    if(replyEvent.succeeded()){
+                        acknowledgeMessage(deliveryTag);
+                    }else{
+                        rejectMessage(deliveryTag, replyEvent.cause());
+                    }
+                });
+            });
 
         } catch (UnsupportedEncodingException e) {
-            LOG.error(String.format("Exception occurred inside RabbitMQ MessageConsumer with consumerTag %s.", consumerTag), e);
+            LOG.error(String.format("Failed to parse message in consumer with consumerTag '%s'", consumerTag), e);
+        }
+    }
+
+    private void acknowledgeMessage(long deliveryTag) {
+        try {
+            getChannel().basicAck(deliveryTag, false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void rejectMessage(long deliveryTag, Throwable exception) {
+        try {
+            LOG.warn(String.format("Failed to send message to address '%s' in consumer with consumerTag '%s'", eventBusAddress, getConsumerTag()),
+                    exception);
+            getChannel().basicNack(deliveryTag, false, true);
+        } catch (IOException ioException) {
+            LOG.warn(String.format("Failed to Nack message with to deliveryTag '%s'", deliveryTag),
+                    ioException);
         }
     }
 

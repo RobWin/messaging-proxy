@@ -15,7 +15,7 @@ public interface MessagingClient {
 
     Future<Void> basicCancel(String consumerTag);
 
-    Future<String> basicConsume(String queueName, String eventBusAddress, boolean autoAck, String consumerTag);
+    Future<String> basicConsume(String queueName, String eventBusAddress, String consumerTag);
 
     Future<Void> basicPublish(String exchangeName, String routingKey, JsonObject message);
 

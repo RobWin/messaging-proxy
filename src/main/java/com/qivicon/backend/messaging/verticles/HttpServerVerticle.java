@@ -3,7 +3,7 @@ package com.qivicon.backend.messaging.verticles;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.qivicon.backend.messaging.config.Configuration;
 import com.qivicon.backend.messaging.verticles.auth.QbertAuthProvider;
-import com.qivicon.backend.messaging.verticles.metrics.MetricsHandler;
+import com.qivicon.backend.messaging.verticles.metrics.PrometheusMetricsHandler;
 import com.qivicon.backend.messaging.verticles.websocket.WebSocketHandler;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServer;
@@ -55,7 +55,7 @@ public class HttpServerVerticle extends AbstractVerticle {
             websocketHandler.handle(webSocket);
         });
         router.get("/health*").handler(healthCheckHandler);
-        router.get("/prometheus*").handler(new MetricsHandler(SharedMetricRegistries.getOrCreate(REGISTRY_NAME)));
+        router.get("/prometheus*").handler(new PrometheusMetricsHandler(SharedMetricRegistries.getOrCreate(REGISTRY_NAME)));
 
         httpServer = vertx.createHttpServer().
                 requestHandler(router::accept);

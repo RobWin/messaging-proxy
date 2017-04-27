@@ -1,8 +1,10 @@
 package com.qivicon.backend.messaging.client.rabbitmq;
 
+import com.codahale.metrics.MetricRegistry;
 import com.qivicon.backend.messaging.client.MessagingClient;
 import com.qivicon.backend.messaging.client.rabbitmq.consumer.EventBusForwarder;
 import com.rabbitmq.client.*;
+import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -13,9 +15,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.qivicon.backend.messaging.client.rabbitmq.Utils.APPLICATION_JSON;
-import static com.qivicon.backend.messaging.client.rabbitmq.Utils.encode;
-import static com.qivicon.backend.messaging.client.rabbitmq.Utils.fromJson;
+import static com.qivicon.backend.messaging.client.rabbitmq.Utils.*;
 
 
 public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCloseable {
@@ -31,15 +31,16 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
     public static final String CONFIG_PREXIX = "rabbitmq.";
     private final ConnectionFactory connectionFactory;
 
-    static RabbitMQClient create(Vertx vertx, JsonObject config){
-        return new RabbitMQClient(vertx, config);
+    static RabbitMQClient create(Vertx vertx, MetricRegistry metricRegistry, JsonObject config){
+        return new RabbitMQClient(vertx, metricRegistry, config);
     }
 
-    private RabbitMQClient(Vertx vertx, JsonObject config) {
+    private RabbitMQClient(Vertx vertx, MetricRegistry metricRegistry, JsonObject config) {
         this.vertx = vertx;
         this.config = config;
         this.retries = config.getInteger(CONFIG_PREXIX + "connectionRetries", 3);
         this.connectionFactory = new ConnectionFactory();
+        this.connectionFactory.setMetricsCollector(new StandardMetricsCollector(metricRegistry));
     }
 
     private void newConnection() throws IOException, TimeoutException {
@@ -108,6 +109,11 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
         Integer networkRecoveryInterval = config.getInteger(CONFIG_PREXIX + "networkRecoveryInterval");
         if (networkRecoveryInterval != null) {
             connectionFactory.setNetworkRecoveryInterval(networkRecoveryInterval);
+        }
+
+        boolean useNio = config.getBoolean(CONFIG_PREXIX + "useNio", false);
+        if (useNio) {
+            this.connectionFactory.useNio();
         }
 
         // Automatic recovery of connections/channels/etc.
@@ -189,7 +195,7 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
 
     @Override
     public Future<String> basicConsume(String queueName, String eventBusAddress) {
-        return withChannel(channel -> channel.basicConsume(queueName,
+        return withChannel(channel -> channel.basicConsume(queueName, false,
                 new EventBusForwarder(vertx, channel, eventBusAddress)));
     }
 
@@ -210,8 +216,8 @@ public class RabbitMQClient implements MessagingClient, ShutdownListener, AutoCl
     }
 
     @Override
-    public Future<String> basicConsume(String queueName, String eventBusAddress, boolean autoAck, String consumerTag) {
-        return withChannel(channel -> channel.basicConsume(queueName, autoAck, consumerTag, new EventBusForwarder(vertx, channel, eventBusAddress)));
+    public Future<String> basicConsume(String queueName, String eventBusAddress, String consumerTag) {
+        return withChannel(channel -> channel.basicConsume(queueName, false, consumerTag, new EventBusForwarder(vertx, channel, eventBusAddress)));
     }
 
     @Override

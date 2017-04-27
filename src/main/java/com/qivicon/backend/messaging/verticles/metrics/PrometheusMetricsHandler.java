@@ -11,7 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.io.Writer;
 
-public class MetricsHandler implements Handler<RoutingContext> {
+public class PrometheusMetricsHandler implements Handler<RoutingContext> {
 
     /**
      * Wrap a Vert.x Buffer as a Writer so it can be used with
@@ -44,18 +44,18 @@ public class MetricsHandler implements Handler<RoutingContext> {
     private CollectorRegistry registry;
 
     /**
-     * Construct a MetricsHandler for the default registry.
+     * Construct a PrometheusMetricsHandler for the default registry.
      */
-    public MetricsHandler(MetricRegistry metricRegistry) {
+    public PrometheusMetricsHandler(MetricRegistry metricRegistry) {
         CollectorRegistry collectorRegistry = new CollectorRegistry();
         collectorRegistry.register(new DropwizardExports(metricRegistry));
         this.registry = collectorRegistry;
     }
 
     /**
-     * Construct a MetricsHandler for the given registry.
+     * Construct a PrometheusMetricsHandler for the given registry.
      */
-    public MetricsHandler(CollectorRegistry registry) {
+    public PrometheusMetricsHandler(CollectorRegistry registry) {
         this.registry = registry;
     }
 

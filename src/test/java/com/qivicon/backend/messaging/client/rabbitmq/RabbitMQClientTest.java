@@ -1,5 +1,6 @@
 package com.qivicon.backend.messaging.client.rabbitmq;
 
+import com.codahale.metrics.MetricRegistry;
 import com.qivicon.backend.messaging.BaseTest;
 import com.qivicon.backend.messaging.client.MessagingClient;
 import com.qivicon.backend.messaging.verticles.events.Events;
@@ -32,6 +33,7 @@ public class RabbitMQClientTest extends BaseTest {
 
     private static final String TEST_MESSAGE_BODY = "TestBody";
     private MessagingClient client;
+    private MetricRegistry metricRegistry;
 
     @ClassRule
     public static GenericContainer rabbitMQ =
@@ -46,7 +48,8 @@ public class RabbitMQClientTest extends BaseTest {
                 .put(CONFIG_PREXIX + "port", rabbitMQ.getMappedPort(5672))
                 .put(CONFIG_PREXIX + "user", "guest")
                 .put(CONFIG_PREXIX + "password", "guest");
-        client = RabbitMQClientFactory.create(vertx, config).get();
+        metricRegistry = new MetricRegistry();
+        client = RabbitMQClientFactory.create(vertx, metricRegistry, config).get();
 
         waitUntilRabbitMQisStarted(context);
     }
@@ -75,6 +78,9 @@ public class RabbitMQClientTest extends BaseTest {
         client.connect()
             .setHandler(messageCountEvent -> {
                 if (messageCountEvent.succeeded()) {
+                    long connectionCount = metricRegistry.counter("rabbitmq.connections").getCount();
+                    LOG.info("Connection count: {}", connectionCount);
+                    context.assertEquals(1L, connectionCount);
                     async.complete();
                 } else {
                     context.fail(messageCountEvent.cause());
@@ -95,29 +101,40 @@ public class RabbitMQClientTest extends BaseTest {
                         async.complete();
                     } else {
                         context.fail(messageCountEvent.cause());
-                }
-        });
+                    }
+                });
     }
 
     @Test
     public void shouldPublishAndConsumeQueue(TestContext context) {
+        final String exchangeName = "test.exchangeName";
+        final String queueName = "test.queueName";
+        final String routingKey = "test.routingKey";
+
         Async async = context.async();
         MessageConsumer<JsonObject> eventBusForwarderConsumer = vertx.eventBus()
                 .consumer(Events.WEBSOCKET_INBOUND_MESSAGE, messageEvent -> {
             LOG.info("Consumed message {}", messageEvent.body().encode());
+            LOG.info("Message consumed");
+            long consumedMessagesCount = metricRegistry.meter("rabbitmq.consumed").getCount();
+            LOG.info("Consumed messages count: {}", consumedMessagesCount);
             context.assertEquals(TEST_MESSAGE_BODY, messageEvent.body().getString("body"));
-            async.complete();
+            client.messageCount(queueName).setHandler(messageCountEvent -> {
+                if (messageCountEvent.succeeded()) {
+                    LOG.info("Message count: {}", messageCountEvent.result());
+                    context.assertEquals(0L, messageCountEvent.result());
+                    async.complete();
+                } else {
+                    context.fail(messageCountEvent.cause());
+                }
+            });
         });
-
-        final String exchangeName = "test.exchangeName";
-        final String queueName = "test.queueName";
-        final String routingKey = "test.routingKey";
 
         eventBusForwarderConsumer.completionHandler(consumerRegisteredEvent -> {
             if(consumerRegisteredEvent.succeeded()){
                 LOG.info("Registered message consumer");
                 Future<String> messageConsumerFuture = createExchangeAndBindToQueue(exchangeName, queueName, routingKey)
-                        .compose(bindOk -> client.basicConsume(queueName, Events.WEBSOCKET_INBOUND_MESSAGE, true, "myConsumerTag"));
+                        .compose(bindOk -> client.basicConsume(queueName, Events.WEBSOCKET_INBOUND_MESSAGE, "myConsumerTag"));
                 messageConsumerFuture.setHandler(consumerTagEvent -> {
                     if (consumerTagEvent.succeeded()) {
                         context.assertEquals("myConsumerTag", consumerTagEvent.result());
@@ -125,6 +142,9 @@ public class RabbitMQClientTest extends BaseTest {
                             .setHandler(publishMessageEvent -> {
                                 if(publishMessageEvent.succeeded()){
                                     LOG.info("Message published");
+                                    long publishedMessagesCount = metricRegistry.meter("rabbitmq.published").getCount();
+                                    LOG.info("Published messages count: {}", publishedMessagesCount);
+                                    context.assertEquals(1L, publishedMessagesCount);
                                 }else{
                                     context.fail(publishMessageEvent.cause());
                                 }

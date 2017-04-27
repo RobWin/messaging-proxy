@@ -4,12 +4,14 @@ ext {
     junitVersion = '4.12'
     slf4jVersion = '1.7.24'
     assertjVersion = '3.6.2'
-    logbackVersion = '0.9.26'
+    logbackVersion = '1.2.3'
     mockitoVersion = '1.10.19'
     rabbitmqVersion = '4.1.0'
     vertxVersion = '3.4.1'
     prometheusVersion = '0.0.21'
     testcontainersVersion = '1.2.1'
+    okHttpVersion = '3.7.0'
+    concurrentunitVersion = '0.4.2'
 
     libraries = [
             // compile
@@ -22,6 +24,11 @@ ext {
             logback: "ch.qos.logback:logback-classic:${logbackVersion}",
             mockito: "org.mockito:mockito-core:${mockitoVersion}",
             testcontainers: "org.testcontainers:testcontainers:${testcontainersVersion}",
+            okhttp: "com.squareup.okhttp3:okhttp:${okHttpVersion}",
+            concurrentunit: "net.jodah:concurrentunit:${concurrentunitVersion}",
+
+            vertx_unit: "io.vertx:vertx-unit:${vertxVersion}",
+
 
             // Vert.x addon
             vertx_core: "io.vertx:vertx-core:${vertxVersion}",
@@ -30,7 +37,6 @@ ext {
             vertx_web: "io.vertx:vertx-web:${vertxVersion}",
             vertx_web_client: "io.vertx:vertx-web-client:${vertxVersion}",
             vertx_health_check: "io.vertx:vertx-health-check:${vertxVersion}",
-            vertx_unit: "io.vertx:vertx-unit:${vertxVersion}",
 
             // Prometheus addon
             prometheus: "io.prometheus:simpleclient_common:${prometheusVersion}",
