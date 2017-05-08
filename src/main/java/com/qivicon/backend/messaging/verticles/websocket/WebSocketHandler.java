@@ -2,6 +2,7 @@ package com.qivicon.backend.messaging.verticles.websocket;
 
 import com.qivicon.backend.messaging.verticles.events.Events;
 import io.vertx.core.Handler;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.ServerWebSocket;
@@ -23,32 +24,43 @@ public class WebSocketHandler implements Handler<ServerWebSocket> {
 
     @Override
     public void handle(ServerWebSocket serverWebSocket) {
-        LOG.info("WebSocket connection opened");
-        eventBus.publish(Events.WEBSOCKET_CONNECTION_OPENED, "Home Base ID");
-        MessageConsumer<JsonObject> outboundMessageConsumer = handleOutboundMessages(serverWebSocket);
-        handleInboundMessages(serverWebSocket);
+        String clientId = getClientId(serverWebSocket);
+        LOG.info("WebSocket connection opened for client '{}'", clientId);
+        eventBus.publish(Events.WEBSOCKET_CONNECTION_OPENED, clientId);
+        MessageConsumer<JsonObject> outboundMessageConsumer = handleOutboundMessages(serverWebSocket, clientId);
+        handleInboundMessages(serverWebSocket, clientId);
         serverWebSocket.exceptionHandler(exception -> LOG.warn("WebSocket failed", exception));
         serverWebSocket.closeHandler((Void) -> {
             LOG.debug("WebSocket connection closed by client");
-            outboundMessageConsumer.unregister(createHandler("Outbound message consumer un-registration"));
-            eventBus.publish(Events.WEBSOCKET_CONNECTION_CLOSED, "Home Base ID");
+            outboundMessageConsumer.unregister(createHandler(String.format("Outbound message consumer un-registration for client '%s'", clientId)));
+            eventBus.publish(Events.WEBSOCKET_CONNECTION_CLOSED, clientId);
         });
     }
 
-    private void handleInboundMessages(ServerWebSocket serverWebSocket) {
+    private String getClientId(ServerWebSocket serverWebSocket) {
+        return serverWebSocket.headers().get("clientId");
+    }
+
+    private void handleInboundMessages(ServerWebSocket serverWebSocket, String clientId) {
         serverWebSocket.handler(message -> {
             JsonObject jsonObject = message.toJsonObject();
+            DeliveryOptions deliveryOptions = new DeliveryOptions().addHeader("clientId", clientId);
             LOG.debug("Message received from client: {}", jsonObject.encodePrettily());
             //DeliveryOptions options = new DeliveryOptions().setSendTimeout(5000);
-            eventBus.send(Events.WEBSOCKET_INBOUND_MESSAGE, jsonObject);
+            eventBus.send(Events.WEBSOCKET_INBOUND_MESSAGE, jsonObject, deliveryOptions);
         });
     }
 
-    private MessageConsumer<JsonObject> handleOutboundMessages(ServerWebSocket serverWebSocket) {
-        MessageConsumer<JsonObject> outboundMessageConsumer = eventBus.consumer(Events.WEBSOCKET_OUTBOUND_MESSAGE);
-        outboundMessageConsumer.completionHandler(createHandler("Outbound message consumer registration"));
+    private MessageConsumer<JsonObject> handleOutboundMessages(ServerWebSocket serverWebSocket, String clientId) {
+        MessageConsumer<JsonObject> outboundMessageConsumer = eventBus.consumer(Events.createOutboundMessageAddress(clientId));
+        outboundMessageConsumer.completionHandler(createHandler(String.format("Outbound message consumer registration for client '%s'", clientId)));
         outboundMessageConsumer.handler(message ->
-            serverWebSocket.writeTextMessage(message.body().encode())
+            {
+                JsonObject response = new JsonObject().put("body", message.body().getString("body"));
+                serverWebSocket.writeTextMessage(response.encode());
+                LOG.info("Outbound message sent to client '{}'", clientId);
+                message.reply(String.format("Outbound message sent to client '%s'", clientId));
+            }
         );
         return outboundMessageConsumer;
     }

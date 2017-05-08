@@ -1,0 +1,15 @@
+charts:
+  - name: msg                       # helm deployment name
+    namespace: myproject                 # target namespace
+    chart: stable/rabbitmq               # chart reference
+    set:
+      - name: image
+        value: rabbitmq:3.6.9-management-alpine
+      - name: rabbitmqUsername
+        value: guest
+      - name: rabbitmqPassword
+        value: guest
+      - name: persistence.size
+        value: 1Gi
+      - name: persistence.storageClass
+        value:

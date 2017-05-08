@@ -19,7 +19,7 @@ public class ConsumerRegistrationHandler<E> implements Handler<AsyncResult<E>> {
     @Override
     public void handle(AsyncResult<E> event) {
         if(event.succeeded()){
-            LOG.debug(logMessage + " succeeded");
+            LOG.info(logMessage + " succeeded");
         }else{
             LOG.warn(logMessage + " failed", event.cause());
         }

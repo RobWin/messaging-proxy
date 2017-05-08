@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
+import io.vertx.ext.healthchecks.Status;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
@@ -43,15 +44,17 @@ public class HttpServerVerticle extends AbstractVerticle {
     @Override
     public void start(Future<Void> startFuture) {
         HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(vertx);
-        //healthCheckHandler.register("healthCheck", future -> future.complete(Status.OK()));
+        healthCheckHandler.register("healthCheck", future -> future.complete(Status.OK()));
 
         AuthProvider authProvider = new QbertAuthProvider();
         AuthHandler basicAuthHandler = BasicAuthHandler.create(authProvider, "messaging");
 
         Router router = Router.router(vertx);
-        router.route().handler(basicAuthHandler);
-        router.route("/").handler(requestContext -> {
+        router.route("/messaging").handler(basicAuthHandler);
+        router.route("/messaging").handler(requestContext -> {
+            String clientId = requestContext.user().principal().getString("username");
             ServerWebSocket webSocket = requestContext.request().upgrade();
+            webSocket.headers().add("clientId", clientId);
             websocketHandler.handle(webSocket);
         });
         router.get("/health*").handler(healthCheckHandler);

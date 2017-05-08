@@ -16,8 +16,8 @@ import java.util.Base64;
 
 public class BaseTest {
     protected static final JsonObject MESSAGE_CONTENT_CLIENT = new JsonObject("{\"body\":\"Hello from client\"}");
-    protected static final JsonObject MESSAGE_CONTENT_SERVER = new JsonObject("{\"body\":\"Hello from server\"}");
-    protected static final String HOME_BASE_ID = "Home Base ID";
+    protected static final JsonObject MESSAGE_CONTENT_BACKEND = new JsonObject("{\"body\":\"Hello from backend\"}");
+    protected static final String HOME_BASE_ID = "HomebaseID";
 
     protected final Logger LOG = LoggerFactory.getLogger(getClass());
 
@@ -38,11 +38,12 @@ public class BaseTest {
 
     protected HttpClient connect(Vertx vertx, Handler<WebSocket> socketHandler) {
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        String base64key =  Base64.getUrlEncoder().encodeToString("guest:guest".getBytes());
+        String credentials = HOME_BASE_ID + ":guest";
+        String base64key =  Base64.getUrlEncoder().encodeToString(credentials.getBytes());
         headers.add(HttpHeaders.AUTHORIZATION,  "Basic "+ base64key);
 
         return vertx.createHttpClient()
-                .websocket(Configuration.LISTEN_PORT, "localhost", "/", headers, socketHandler,
+                .websocket(Configuration.LISTEN_PORT, "localhost", "/messaging", headers, socketHandler,
                         exception -> {
                             LOG.warn("WebSocket connection failed");
                         });
@@ -50,7 +51,7 @@ public class BaseTest {
 
     protected HttpClient connectWithoutCredentials(Vertx vertx, Handler<Throwable> failureHandler) {
         return vertx.createHttpClient()
-                .websocket(Configuration.LISTEN_PORT, "localhost", "/",
+                .websocket(Configuration.LISTEN_PORT, "localhost", "/messaging",
                         webSocket -> {},
                         failureHandler);
     }

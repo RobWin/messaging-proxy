@@ -12,7 +12,7 @@ public class LoggingInterceptor implements Interceptor {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoggingInterceptor.class);
 
-    @Override public Response intercept(Interceptor.Chain chain) throws IOException {
+    @Override public Response intercept(Chain chain) throws IOException {
         Request request = chain.request();
 
         long t1 = System.nanoTime();

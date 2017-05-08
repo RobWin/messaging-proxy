@@ -1,4 +1,4 @@
-package com.qivicon.backend.messaging.client.rabbitmq;
+package com.qivicon.backend.messaging.client.impl.utils;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Envelope;

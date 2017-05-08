@@ -1,7 +1,9 @@
 package com.qivicon.backend.messaging.services;
 
 import com.qivicon.backend.messaging.BaseTest;
-import com.qivicon.backend.messaging.client.MessagingClient;
+import com.qivicon.backend.messaging.client.AmqpChannel;
+import com.qivicon.backend.messaging.client.AmqpClient;
+import com.qivicon.backend.messaging.client.AmqpConnection;
 import com.qivicon.backend.messaging.services.impl.DefaultMessagingService;
 import io.vertx.core.Future;
 import io.vertx.ext.unit.Async;
@@ -18,15 +20,21 @@ import static org.mockito.Mockito.*;
 public class DefaultMessagingServiceTest extends BaseTest {
 
     private MessagingService messagingService;
-    private MessagingClient client;
+    private AmqpClient client;
+    private AmqpConnection connection;
+    private AmqpChannel channel;
+
 
     @Before
     public void setUp(TestContext context) {
         super.setUp(context);
-        client = mock(MessagingClient.class);
-        when(client.connect()).thenReturn(Future.succeededFuture());
-        when(client.disconnect()).thenReturn(Future.succeededFuture());
-        messagingService = new DefaultMessagingService(() -> client);
+        client = mock(AmqpClient.class);
+        connection = mock(AmqpConnection.class);
+        channel = mock(AmqpChannel.class);
+        when(client.connect(null, -1, null, null)).thenReturn(Future.succeededFuture(connection));
+        when(connection.createChannel()).thenReturn(Future.succeededFuture(channel));
+        when(connection.close()).thenReturn(Future.succeededFuture());
+        messagingService = new DefaultMessagingService(client);
     }
 
     @After
@@ -63,7 +71,7 @@ public class DefaultMessagingServiceTest extends BaseTest {
     @Test(timeout = 10000)
     public void shouldPublishMessage(TestContext context) {
         //Given
-        when(client.basicPublish(anyString(), anyString(), anyObject())).thenReturn(Future.succeededFuture());
+        when(channel.basicPublish(anyString(), anyString(), anyObject())).thenReturn(Future.succeededFuture());
 
         //When
         Async async = context.async();
@@ -78,7 +86,7 @@ public class DefaultMessagingServiceTest extends BaseTest {
         );
 
         //Then
-        verify(client).basicPublish("to_backend.direct", "clientId", MESSAGE_CONTENT_CLIENT);
+        verify(channel).basicPublish("to_backend.direct", "clientId", MESSAGE_CONTENT_CLIENT);
     }
 
 

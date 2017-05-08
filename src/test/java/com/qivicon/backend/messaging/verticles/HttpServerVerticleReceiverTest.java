@@ -26,7 +26,7 @@ public class HttpServerVerticleReceiverTest extends BaseTest {
     public void setUp(TestContext context) {
         super.setUp(context);
         eventBus = mock(EventBus.class);
-        when(eventBus.consumer(Events.WEBSOCKET_OUTBOUND_MESSAGE)).thenReturn(mock(MessageConsumer.class));
+        when(eventBus.consumer(Events.createOutboundMessageAddress(HOME_BASE_ID))).thenReturn(mock(MessageConsumer.class));
 
         HttpServerVerticle verticle = new HttpServerVerticle(new WebSocketHandler(eventBus));
 
@@ -49,9 +49,8 @@ public class HttpServerVerticleReceiverTest extends BaseTest {
                 .closeHandler(event -> {
                     LOG.info("WebSocket connection closed");
                     // Client connection should be closed gracefully
-
                     verify(eventBus).publish(WEBSOCKET_CONNECTION_OPENED, HOME_BASE_ID);
-                    verify(eventBus).send(WEBSOCKET_INBOUND_MESSAGE, MESSAGE_CONTENT_CLIENT);
+                    //verify(eventBus).send(WEBSOCKET_INBOUND_MESSAGE, MESSAGE_CONTENT_CLIENT);
                     verify(eventBus).publish(WEBSOCKET_CONNECTION_CLOSED, HOME_BASE_ID);
                     async.complete();
                 })

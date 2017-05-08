@@ -1,6 +1,7 @@
 package com.qivicon.backend.messaging.verticles;
 
 import com.qivicon.backend.messaging.BaseTest;
+import com.qivicon.backend.messaging.verticles.events.Events;
 import com.qivicon.backend.messaging.verticles.websocket.WebSocketHandler;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.vertx.core.eventbus.EventBus;
@@ -12,7 +13,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static com.qivicon.backend.messaging.verticles.events.Events.WEBSOCKET_OUTBOUND_MESSAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(VertxUnitRunner.class)
@@ -40,13 +40,13 @@ public class HttpServerVerticleSenderTest extends BaseTest {
         final Async async = context.async();
         connect(vertx, webSocket -> {
             LOG.info("WebSocket client connected");
-            eventBus.sender(WEBSOCKET_OUTBOUND_MESSAGE)
+            eventBus.sender(Events.createOutboundMessageAddress(HOME_BASE_ID))
                 .exceptionHandler(e -> LOG.warn("Failed to send message", e))
-                .send(MESSAGE_CONTENT_SERVER);
+                .send(MESSAGE_CONTENT_BACKEND);
             webSocket
                     .handler(message -> {
                         LOG.info("Received message by server: {}", message.toString());
-                        context.assertEquals(MESSAGE_CONTENT_SERVER, message.toJsonObject());
+                        context.assertEquals(MESSAGE_CONTENT_BACKEND, message.toJsonObject());
                         webSocket.close();
                     })
                     .closeHandler(event -> {

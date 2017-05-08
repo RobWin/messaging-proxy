@@ -26,7 +26,7 @@ public class MessageSenderVerticleTest extends BaseTest {
         messagingService = Mockito.mock(MessagingService.class);
         when(messagingService.start()).thenReturn(Future.succeededFuture());
         when(messagingService.stop()).thenReturn(Future.succeededFuture());
-        MessageSenderVerticle verticle = new MessageSenderVerticle(() -> messagingService);
+        MessageSenderVerticle verticle = new MessageSenderVerticle(messagingService);
 
         vertx.deployVerticle(verticle,
                 context.asyncAssertSuccess());

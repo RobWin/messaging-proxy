@@ -2,13 +2,10 @@ package com.qivicon.backend.messaging.verticles;
 
 
 import com.codahale.metrics.SharedMetricRegistries;
-import com.qivicon.backend.messaging.client.MessagingClient;
-import com.qivicon.backend.messaging.client.rabbitmq.RabbitMQClientFactory;
+import com.qivicon.backend.messaging.client.AmqpClient;
 import com.qivicon.backend.messaging.services.MessagingService;
-import com.qivicon.backend.messaging.services.impl.MessagingServiceFactory;
+import com.qivicon.backend.messaging.services.impl.DefaultMessagingService;
 import io.vertx.config.ConfigRetriever;
-import io.vertx.config.ConfigRetrieverOptions;
-import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -19,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static com.qivicon.backend.messaging.ApplicationLauncher.REGISTRY_NAME;
 
@@ -29,11 +25,13 @@ public class ApplicationVerticle extends AbstractVerticle {
 
     @Override
     public void start(Future<Void> startFuture) {
+        /*
         ConfigStoreOptions envStore = new ConfigStoreOptions()
                 .setType("env");
         ConfigRetrieverOptions options = new ConfigRetrieverOptions()
                 .addStore(envStore);
-        ConfigRetriever.create(vertx, options)
+                */
+        ConfigRetriever.create(vertx)
             .getConfig(loadConfigEvent -> {
                 if (loadConfigEvent.succeeded()) {
                     JsonObject config = loadConfigEvent.result();
@@ -53,16 +51,12 @@ public class ApplicationVerticle extends AbstractVerticle {
 
     private CompositeFuture deployVerticles(JsonObject config) {
         List<Future> endpointFutures = new ArrayList<>();
-        Supplier<MessagingClient> clientFactory = RabbitMQClientFactory.create(
-                vertx,
-                SharedMetricRegistries.getOrCreate(REGISTRY_NAME),
-                config);
-        Supplier<MessagingService> messagingServiceFactory = MessagingServiceFactory
-                .create(clientFactory);
+        MessagingService messageService = new DefaultMessagingService(AmqpClient.create(vertx,
+                SharedMetricRegistries.getOrCreate(REGISTRY_NAME)), config);
 
         endpointFutures.add(deployVerticle(HttpServerVerticle.class.getName()));
-        endpointFutures.add(deployVerticle(new MessageSenderVerticle(messagingServiceFactory)));
-        endpointFutures.add(deployVerticle(new MessageListenerVerticle(messagingServiceFactory)));
+        endpointFutures.add(deployVerticle(new MessageSenderVerticle(messageService)));
+        endpointFutures.add(deployVerticle(new MessageListenerVerticle(messageService)));
         return CompositeFuture.all(endpointFutures);
     }
 

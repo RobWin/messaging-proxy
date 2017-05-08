@@ -1,4 +1,4 @@
-package com.qivicon.backend.messaging.client.rabbitmq.consumer;
+package com.qivicon.backend.messaging.client.impl.consumer;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
-import static com.qivicon.backend.messaging.client.rabbitmq.Utils.*;
+import static com.qivicon.backend.messaging.client.impl.utils.Utils.*;
 
 
 public class EventBusForwarder extends DefaultConsumer {
@@ -54,7 +54,7 @@ public class EventBusForwarder extends DefaultConsumer {
                 DeliveryOptions deliveryOptions = new DeliveryOptions().setSendTimeout(5000);
                 MessageProducer<JsonObject> sender = vertx.eventBus().sender(eventBusAddress, deliveryOptions);
                 sender.exceptionHandler(exception -> rejectMessage(deliveryTag, exception));
-                LOG.debug("Send message to to address {}", eventBusAddress);
+                LOG.info("Send message to to address '{}'", eventBusAddress);
                 sender.send(msg, replyEvent -> {
                     if(replyEvent.succeeded()){
                         acknowledgeMessage(deliveryTag);
