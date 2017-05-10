@@ -1,23 +1,14 @@
 package com.qivicon.backend.messaging.verticles;
 
 
-import com.codahale.metrics.SharedMetricRegistries;
-import com.qivicon.backend.messaging.client.AmqpClient;
-import com.qivicon.backend.messaging.services.MessagingService;
-import com.qivicon.backend.messaging.services.impl.DefaultMessagingService;
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.Verticle;
+import io.vertx.core.*;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.qivicon.backend.messaging.ApplicationLauncher.REGISTRY_NAME;
 
 public class ApplicationVerticle extends AbstractVerticle {
 
@@ -51,18 +42,17 @@ public class ApplicationVerticle extends AbstractVerticle {
 
     private CompositeFuture deployVerticles(JsonObject config) {
         List<Future> endpointFutures = new ArrayList<>();
-        MessagingService messageService = new DefaultMessagingService(AmqpClient.create(vertx,
-                SharedMetricRegistries.getOrCreate(REGISTRY_NAME)), config);
+        DeploymentOptions deploymentOptions = new DeploymentOptions().setConfig(config).setInstances(3);
 
-        endpointFutures.add(deployVerticle(HttpServerVerticle.class.getName()));
-        endpointFutures.add(deployVerticle(new MessageSenderVerticle(messageService)));
-        endpointFutures.add(deployVerticle(new MessageListenerVerticle(messageService)));
+        endpointFutures.add(deployVerticle(HttpServerVerticle.class.getName(), deploymentOptions));
+        endpointFutures.add(deployVerticle(MessageListenerVerticle.class.getName(), deploymentOptions));
+        endpointFutures.add(deployVerticle(MessageSenderVerticle.class.getName(), deploymentOptions));
         return CompositeFuture.all(endpointFutures);
     }
 
-    private Future<Void> deployVerticle(String className) {
+    private Future<Void> deployVerticle(String className, DeploymentOptions deploymentOptions) {
         final Future<Void> startFuture = Future.future();
-        vertx.deployVerticle(className, stopEvent -> {
+        vertx.deployVerticle(className, deploymentOptions, stopEvent -> {
             if(stopEvent.succeeded()){
                 LOG.info("Deployed Verticle: {}", className);
                 startFuture.complete();
@@ -75,9 +65,9 @@ public class ApplicationVerticle extends AbstractVerticle {
         return startFuture;
     }
 
-    private Future<Void> deployVerticle(Verticle verticle) {
+    private Future<Void> deployVerticle(Verticle verticle, DeploymentOptions deploymentOptions) {
         final Future<Void> startFuture = Future.future();
-        vertx.deployVerticle(verticle, stopEvent -> {
+        vertx.deployVerticle(verticle, deploymentOptions, stopEvent -> {
             if(stopEvent.succeeded()){
                 LOG.info("Deployed Verticle: {}", verticle.getClass().getName());
                 startFuture.complete();
@@ -85,7 +75,6 @@ public class ApplicationVerticle extends AbstractVerticle {
                 LOG.error("Failed to deploy Verticle: {}", verticle.getClass().getName(), stopEvent.cause());
                 startFuture.fail(stopEvent.cause());
             }
-
         });
         return startFuture;
     }

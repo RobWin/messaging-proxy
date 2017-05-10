@@ -1,6 +1,9 @@
 package com.qivicon.backend.messaging.verticles;
 
+import com.codahale.metrics.SharedMetricRegistries;
+import com.qivicon.backend.messaging.client.AmqpClient;
 import com.qivicon.backend.messaging.services.MessagingService;
+import com.qivicon.backend.messaging.services.impl.DefaultMessagingService;
 import com.qivicon.backend.messaging.verticles.events.Events;
 import io.vertx.core.*;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -8,11 +11,15 @@ import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.qivicon.backend.messaging.ApplicationLauncher.REGISTRY_NAME;
+
 public class MessageSenderVerticle extends AbstractVerticle {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageSenderVerticle.class);
     private MessageConsumer<JsonObject> messageConsumer;
-    private final MessagingService messagingService;
+    private MessagingService messagingService;
+
+    public MessageSenderVerticle ()  {}
 
     public MessageSenderVerticle(MessagingService messagingService){
         this.messagingService = messagingService;
@@ -22,6 +29,10 @@ public class MessageSenderVerticle extends AbstractVerticle {
     @Override
     public void init(Vertx vertx, Context context) {
         super.init(vertx, context);
+        if(messagingService == null){
+            this.messagingService = new DefaultMessagingService(AmqpClient.create(vertx,
+                    SharedMetricRegistries.getOrCreate(REGISTRY_NAME)), config());
+        }
     }
 
     @Override
@@ -29,7 +40,7 @@ public class MessageSenderVerticle extends AbstractVerticle {
         Future<Void> messagingServiceFuture = messagingService.start();
         Future<Void> inboundMessageConsumerFuture = Future.future();
 
-        messageConsumer = vertx.eventBus().consumer(Events.WEBSOCKET_INBOUND_MESSAGE);
+        messageConsumer = vertx.eventBus().localConsumer(Events.WEBSOCKET_INBOUND_MESSAGE);
         messageConsumer.completionHandler(inboundMessageConsumerFuture.completer());
         messageConsumer.handler(
             (message) -> {

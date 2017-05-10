@@ -18,6 +18,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +34,7 @@ public class ITMessagingProxy {
     private static final String MESSAGE_CONTENT_CLIENT = "{\"body\":\"Hello from client\"}";
     protected static final JsonObject MESSAGE_CONTENT_BACKEND = new JsonObject("{\"body\":\"Hello from backend\"}");
     public static final int NUMBER_OF_HOMEBASES = 10000;
+    public static final int MESSAGES_PER_HOMEBASE = 10;
     private AmqpClient amqpClient;
     private OkHttpClient client;
 
@@ -64,26 +67,35 @@ public class ITMessagingProxy {
         final Waiter messageWaiter = new Waiter();
         final AtomicInteger queueCount = new AtomicInteger(0);
         final AtomicInteger messageCount = new AtomicInteger(0);
+        Instant start = Instant.now();
 
         IntStream.range(0, NUMBER_OF_HOMEBASES).parallel().forEach(id -> {
             connect("HomeBase" + id, connectionWaiter, messageWaiter, queueCount, messageCount);
         });
         connectionWaiter.await(1000000, NUMBER_OF_HOMEBASES);
+        Instant end = Instant.now();
+        LOG.info("Connection throughput: {}/s", NUMBER_OF_HOMEBASES * MESSAGES_PER_HOMEBASE / Duration.between(start, end).getSeconds());
 
         Thread.sleep(10000);
+
+        start = Instant.now();
 
         amqpClient.connect("localhost")
                 .compose(AmqpConnection::createChannel)
                 .setHandler(event -> {
             if (event.succeeded()) {
                 IntStream.range(0, NUMBER_OF_HOMEBASES).parallel().forEach(id -> {
-                    sendMessage(event.result(), "HomeBase" + id);
+                    IntStream.range(0, MESSAGES_PER_HOMEBASE).parallel().forEach(message -> {
+                        sendMessage(event.result(), "HomeBase" + id);
+                    });
                 });
             }
         });
 
         // Wait for all messages
-        messageWaiter.await(1000000, NUMBER_OF_HOMEBASES);
+        messageWaiter.await(1000000, NUMBER_OF_HOMEBASES * MESSAGES_PER_HOMEBASE);
+        end = Instant.now();
+        LOG.info("Message throughput: {}/s", NUMBER_OF_HOMEBASES * MESSAGES_PER_HOMEBASE / Duration.between(start, end).getSeconds());
 
     }
 
@@ -91,7 +103,7 @@ public class ITMessagingProxy {
     public void shouldConnectManyBackends() throws TimeoutException, InterruptedException {
         final Waiter connectionWaiter = new Waiter();
         final AtomicInteger queueCount = new AtomicInteger(0);
-        IntStream.range(0, 1000).parallel().forEach(id -> {
+        IntStream.range(0, 5000).parallel().forEach(id -> {
             createExchangeAndBindToQueue(id)
                 .setHandler(event -> {
                     if (event.succeeded()) {
@@ -104,7 +116,7 @@ public class ITMessagingProxy {
         });
 
         // Wait for all messages
-        connectionWaiter.await(1000000, 1000);
+        connectionWaiter.await(1000000, 10000);
     }
 
     private WebSocket connect(String homebaseId, Waiter connectionWaiter, Waiter messageWaiter, AtomicInteger queueCount, AtomicInteger messageCount) {

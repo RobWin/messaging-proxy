@@ -1,18 +1,25 @@
 package com.qivicon.backend.messaging.verticles;
 
+import com.codahale.metrics.SharedMetricRegistries;
+import com.qivicon.backend.messaging.client.AmqpClient;
 import com.qivicon.backend.messaging.services.MessagingService;
+import com.qivicon.backend.messaging.services.impl.DefaultMessagingService;
 import com.qivicon.backend.messaging.verticles.events.Events;
 import io.vertx.core.*;
 import io.vertx.core.eventbus.MessageConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.qivicon.backend.messaging.ApplicationLauncher.REGISTRY_NAME;
+
 public class MessageListenerVerticle extends AbstractVerticle {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageListenerVerticle.class);
     private MessageConsumer<String> connectionOpenedEventConsumer;
     private MessageConsumer<String> connectionClosedEventConsumer;
-    private final MessagingService messagingService;
+    private MessagingService messagingService;
+
+    public MessageListenerVerticle ()  {}
 
     public MessageListenerVerticle(MessagingService messagingService){
         this.messagingService = messagingService;
@@ -21,6 +28,10 @@ public class MessageListenerVerticle extends AbstractVerticle {
     @Override
     public void init(Vertx vertx, Context context) {
         super.init(vertx, context);
+        if(messagingService == null){
+           this.messagingService = new DefaultMessagingService(AmqpClient.create(vertx,
+                    SharedMetricRegistries.getOrCreate(REGISTRY_NAME)), config());
+        }
     }
 
     @Override
@@ -29,14 +40,14 @@ public class MessageListenerVerticle extends AbstractVerticle {
         Future<Void> connectionClosedEventConsumerFuture = Future.future();
         Future<Void> messagingServiceFuture = messagingService.start();
 
-        connectionOpenedEventConsumer = vertx.eventBus().consumer(Events.WEBSOCKET_CONNECTION_OPENED);
+        connectionOpenedEventConsumer = vertx.eventBus().localConsumer(Events.WEBSOCKET_CONNECTION_OPENED);
         connectionOpenedEventConsumer.completionHandler(connectionOpenedEventConsumerFuture.completer());
         connectionOpenedEventConsumer.handler(connectionOpenedEvent -> {
             LOG.info("Event '{}' consumed for client: {}", Events.WEBSOCKET_CONNECTION_OPENED, connectionOpenedEvent.body());
             messagingService.onClientConnect(connectionOpenedEvent.body());
         });
 
-        connectionClosedEventConsumer = vertx.eventBus().consumer(Events.WEBSOCKET_CONNECTION_CLOSED);
+        connectionClosedEventConsumer = vertx.eventBus().localConsumer(Events.WEBSOCKET_CONNECTION_CLOSED);
         connectionClosedEventConsumer.completionHandler(connectionClosedEventConsumerFuture.completer());
         connectionClosedEventConsumer.handler((connectionClosedEvent) -> {
             LOG.info("Event '{}' consumed for client: {}", Events.WEBSOCKET_CONNECTION_CLOSED, connectionClosedEvent.body());

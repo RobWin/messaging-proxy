@@ -9,5 +9,6 @@ public class LoggingUtils {
     public static void configureLogging() {
         System.setProperty(LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME,
                 SLF4JLogDelegateFactory.class.getName());
+        System.setProperty("hazelcast.logging.type", "slf4j");
     }
 }

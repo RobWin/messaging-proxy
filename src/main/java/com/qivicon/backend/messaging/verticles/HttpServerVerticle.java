@@ -1,7 +1,6 @@
 package com.qivicon.backend.messaging.verticles;
 
 import com.codahale.metrics.SharedMetricRegistries;
-import com.qivicon.backend.messaging.config.Configuration;
 import com.qivicon.backend.messaging.verticles.auth.QbertAuthProvider;
 import com.qivicon.backend.messaging.verticles.metrics.PrometheusMetricsHandler;
 import com.qivicon.backend.messaging.verticles.websocket.WebSocketHandler;
@@ -25,6 +24,7 @@ public class HttpServerVerticle extends AbstractVerticle {
 
     private HttpServer httpServer;
     private Handler<ServerWebSocket> websocketHandler;
+    private int serverPort;
 
     public HttpServerVerticle ()  {}
 
@@ -38,6 +38,7 @@ public class HttpServerVerticle extends AbstractVerticle {
         if(websocketHandler == null){
             this.websocketHandler = new WebSocketHandler(this.vertx.eventBus());
         }
+        serverPort = config().getInteger("server.port", 8080);
     }
 
 
@@ -64,7 +65,7 @@ public class HttpServerVerticle extends AbstractVerticle {
                 requestHandler(router::accept);
         //httpServer.connectionHandler(connection -> LOG.debug("HTTP Connection opened"));
 
-        httpServer.listen(Configuration.LISTEN_PORT, event -> {
+        httpServer.listen(serverPort, event -> {
                 if (event.succeeded()) {
                     LOG.info("Started Verticle: {}", this.getClass().getName());
                     LOG.info("HttpServer is listening on port {}", event.result().actualPort());

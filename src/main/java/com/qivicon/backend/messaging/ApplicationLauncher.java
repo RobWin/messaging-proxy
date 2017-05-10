@@ -30,6 +30,7 @@ public class ApplicationLauncher extends io.vertx.core.Launcher {
     }
 
     public void beforeStartingVertx(VertxOptions options){
+        options.setClustered(false);
         options.setMetricsOptions(new DropwizardMetricsOptions()
                 .setRegistryName(REGISTRY_NAME)
                 .setEnabled(true));
